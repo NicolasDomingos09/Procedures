@@ -39,4 +39,72 @@ VALUES (1, 'Corrida + Step', 18.5),
 -- Exemplo, se o IMC for igual a 27, deve-se fazer a atividade para IMC = 29.9
 -- * Caso o IMC seja maior que 40, utilizar o código 5.
 
+-- Calcular IMC
+CREATE PROCEDURE sp_calcular_IMC(@altura DECIMAL(4, 2), @peso DECIMAL(4, 2), @res DECIMAL(4, 2) OUTPUT)
+AS
+    SET @res = @peso / (@altura * @altura);
+
+-- Buscar Atividade
+CREATE PROCEDURE sp_buscar_atividade(@IMC DECIMAL(4, 2), @codigo INT OUTPUT)
+AS
+    IF @IMC < 18.5
+        BEGIN
+            SET @codigo = 1;
+        END
+    IF @IMC BETWEEN 18.6 AND 24.9
+        BEGIN
+            SET @codigo = 2;
+        END
+    IF @IMC BETWEEN 25 AND 29.9
+        BEGIN
+            SET @codigo = 3;
+        END
+    IF @IMC BETWEEN 30 AND 34.9
+        BEGIN
+            SET @codigo = 4;
+        END
+    IF @IMC > 35
+        BEGIN
+            SET @codigo = 5;
+        END
+
+-- Cadastrar Atividade do Aluno
+CREATE PROCEDURE sp_atividade_aluno(@codigo_aluno INT, @nome VARCHAR(100), @altura DECIMAL(4, 2), @peso DECIMAL(4, 2))
+AS
+DECLARE @IMC DECIMAL(4, 2);
+DECLARE @codigo_atividade INT
+    IF @codigo_aluno IS NULL AND @nome IS NOT NULL AND @altura IS NOT NULL AND @peso IS NOT NULL
+        BEGIN
+            DECLARE @idAluno INT;
+            SET @idAluno = ISNULL(((SELECT MAX(codigo_aluno) FROM Aluno) + 1), 1)
+            INSERT INTO Aluno (codigo_aluno, nome)
+            VALUES (@idAluno, @nome)
+            EXEC sp_calcular_IMC @altura, @peso, @IMC OUTPUT
+            EXEC sp_buscar_atividade @IMC, @codigo_atividade OUTPU
+            INSERT INTO Atividade_Aluno (codigo_aluno, altura, peso, IMC, atividade)
+            VALUES (@idAluno, @altura, @peso, @IMC, @codigo_atividade);
+        END
+    ELSE
+        BEGIN
+            IF (SELECT COUNT(*) FROM Aluno WHERE codigo_aluno = @codigo_aluno) = 1
+                BEGIN
+                    EXEC sp_calcular_IMC @altura, @peso, @IMC OUTPUT
+                    EXEC sp_buscar_atividade @IMC, @codigo_atividade OUTPU
+                    UPDATE Atividade_Aluno
+                    SET altura = @altura,
+                        peso   = @peso,
+                        IMC    = @IMC,
+                        atividade = @codigo_atividade
+                    WHERE codigo_aluno = @codigo_aluno;
+                END
+            ELSE
+                BEGIN
+                    RAISERROR (N'Código de aluno não existe', 16, 1)
+                END
+        END
+
+-- TESTES
+EXEC sp_atividade_aluno NULL, 'João', 1.75, 85.00
+EXEC sp_atividade_aluno NULL, 'Pedro', 1.80, 95.00
+EXEC sp_atividade_aluno 1, NULL, 1.75, 72.00
 
