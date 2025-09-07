@@ -89,7 +89,7 @@ DECLARE @codigo_atividade INT
             IF (SELECT COUNT(*) FROM Aluno WHERE codigo_aluno = @codigo_aluno) = 1
                 BEGIN
                     EXEC sp_calcular_IMC @altura, @peso, @IMC OUTPUT
-                    EXEC sp_buscar_atividade @IMC, @codigo_atividade OUTPU
+                    EXEC sp_buscar_atividade @IMC, @codigo_atividade OUTPUT
                     UPDATE Atividade_Aluno
                     SET altura = @altura,
                         peso   = @peso,
